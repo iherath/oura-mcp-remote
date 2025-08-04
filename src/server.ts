@@ -210,11 +210,11 @@ export class RemoteMCPServer {
       res.status(200).end();
     });
 
-    // MCP Server-Sent Events endpoint (GET)
-    this.app.get('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
+    // MCP Streamable HTTP endpoint (GET)
+    this.app.get('/sse', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
 
-    // MCP Server-Sent Events endpoint (POST) - for Letta compatibility
-    this.app.post('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
+    // MCP Streamable HTTP endpoint (POST) - for Letta compatibility
+    this.app.post('/sse', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
 
     // Root endpoint
     this.app.get('/', (req, res) => {
@@ -302,43 +302,32 @@ export class RemoteMCPServer {
     }
   }
 
-  private async handleSSE(req: express.Request, res: express.Response): Promise<void> {
+  private async handleStreamableHTTP(req: express.Request, res: express.Response): Promise<void> {
     const userSession = (req as any).userSession as UserSession;
 
-    console.log('SSE connection established for user:', userSession.userId);
+    console.log('Streamable HTTP connection established for user:', userSession.userId);
 
-    // Set SSE headers
+    // Set Streamable HTTP headers
     res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control, Authorization',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'X-Accel-Buffering': 'no'
     });
 
     // Send initial connection message
-    const connectionMessage = JSON.stringify({
+    const connectionMessage = {
       type: 'connection',
       status: 'connected',
       timestamp: new Date().toISOString()
-    });
-    res.write(`data: ${connectionMessage}\n\n`);
+    };
+    res.write(JSON.stringify(connectionMessage) + '\n');
     console.log('Sent connection message:', connectionMessage);
     
-    // Don't send MCP init message immediately - wait for client request
     console.log('Waiting for MCP client request...');
-
-    // Send heartbeat every 30 seconds to keep connection alive
-    const heartbeatInterval = setInterval(() => {
-      const heartbeatMessage = JSON.stringify({
-        type: 'heartbeat',
-        timestamp: new Date().toISOString()
-      });
-      res.write(`data: ${heartbeatMessage}\n\n`);
-      console.log('Sent heartbeat');
-    }, 30000);
 
     // Handle MCP messages
     req.on('data', async (chunk) => {
@@ -350,9 +339,9 @@ export class RemoteMCPServer {
         const server = this.mcpServer.getServer();
         const response = await server.request(data, {} as any);
 
-        // Send response back via SSE
+        // Send response back via Streamable HTTP
         console.log('Sending MCP response:', response);
-        res.write(`data: ${JSON.stringify(response)}\n\n`);
+        res.write(JSON.stringify(response) + '\n');
       } catch (error) {
         console.log('MCP request error:', error);
         const errorResponse = {
@@ -363,20 +352,18 @@ export class RemoteMCPServer {
             message: (error as Error).message,
           },
         };
-        res.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
+        res.write(JSON.stringify(errorResponse) + '\n');
       }
     });
 
     // Handle client disconnect
     req.on('close', () => {
-      console.log('SSE connection closed by client');
-      clearInterval(heartbeatInterval);
+      console.log('Streamable HTTP connection closed by client');
       res.end();
     });
 
     req.on('error', (error) => {
-      console.error('SSE connection error:', error);
-      clearInterval(heartbeatInterval);
+      console.error('Streamable HTTP connection error:', error);
       res.end();
     });
   }

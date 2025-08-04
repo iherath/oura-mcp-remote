@@ -168,13 +168,13 @@ export class OuraClient {
       return true;
     } catch (error) {
       console.log('Sleep data validation failed:', error);
-      
+
       // Check if it's a network/DNS error
       if (error instanceof Error && error.message.includes('ENOTFOUND')) {
         console.log('Network error - assuming token is valid for now');
         return true;
       }
-      
+
       if (error instanceof OuraAPIError) {
         console.log('OuraAPIError status:', error.statusCode);
         if (error.statusCode === 401) {

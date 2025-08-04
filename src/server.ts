@@ -212,7 +212,7 @@ export class RemoteMCPServer {
 
     // MCP Server-Sent Events endpoint (GET)
     this.app.get('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
-    
+
     // MCP Server-Sent Events endpoint (POST) - for Letta compatibility
     this.app.post('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
 
@@ -326,6 +326,31 @@ export class RemoteMCPServer {
     });
     res.write(`data: ${connectionMessage}\n\n`);
     console.log('Sent connection message:', connectionMessage);
+    
+    // Send MCP server initialization message
+    const initMessage = JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      result: {
+        name: 'oura-mcp-server',
+        version: '1.0.0',
+        capabilities: {
+          tools: {}
+        }
+      }
+    });
+    res.write(`data: ${initMessage}\n\n`);
+    console.log('Sent MCP init message:', initMessage);
+
+    // Send heartbeat every 30 seconds to keep connection alive
+    const heartbeatInterval = setInterval(() => {
+      const heartbeatMessage = JSON.stringify({
+        type: 'heartbeat',
+        timestamp: new Date().toISOString()
+      });
+      res.write(`data: ${heartbeatMessage}\n\n`);
+      console.log('Sent heartbeat');
+    }, 30000);
 
     // Handle MCP messages
     req.on('data', async (chunk) => {
@@ -353,11 +378,14 @@ export class RemoteMCPServer {
 
     // Handle client disconnect
     req.on('close', () => {
+      console.log('SSE connection closed by client');
+      clearInterval(heartbeatInterval);
       res.end();
     });
 
     req.on('error', (error) => {
       console.error('SSE connection error:', error);
+      clearInterval(heartbeatInterval);
       res.end();
     });
   }

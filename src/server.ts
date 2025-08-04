@@ -216,9 +216,13 @@ export class RemoteMCPServer {
     // MCP Streamable HTTP endpoint (POST) - for Letta compatibility
     this.app.post('/sse', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
 
-    // Root endpoint
-    this.app.get('/', (req, res) => {
-      console.log('Root endpoint requested');
+    // Root MCP endpoint for Letta (Streamable HTTP)
+    this.app.get('/', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
+    this.app.post('/', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
+
+    // Root endpoint (fallback for non-MCP requests)
+    this.app.get('/info', (req, res) => {
+      console.log('Info endpoint requested');
       res.json({
         name: 'Oura Remote MCP Server',
         version: '1.0.0',
@@ -231,6 +235,7 @@ export class RemoteMCPServer {
           oauth_token: '/oauth/token',
           register: 'POST /register',
           mcp: '/sse',
+          root_mcp: '/',
         },
       });
     });
@@ -332,11 +337,14 @@ export class RemoteMCPServer {
       jsonrpc: '2.0',
       id: null,
       result: {
-        name: 'oura-mcp-server',
-        version: '1.0.0',
+        protocolVersion: '2024-11-05',
         capabilities: {
           tools: {},
           resources: {}
+        },
+        serverInfo: {
+          name: 'oura-mcp-server',
+          version: '1.0.0'
         }
       }
     };

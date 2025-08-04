@@ -323,7 +323,7 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-        // Send initial connection message
+    // Send initial connection message
     const connectionMessage = {
       type: 'connection',
       status: 'connected',
@@ -331,26 +331,7 @@ export class RemoteMCPServer {
     };
     res.write(JSON.stringify(connectionMessage) + '\n');
     console.log('Sent connection message:', connectionMessage);
-    
-    // Send MCP server initialization message immediately
-    const initMessage = {
-      jsonrpc: '2.0',
-      id: null,
-      result: {
-        protocolVersion: '2024-11-05',
-        capabilities: {
-          tools: {},
-          resources: {}
-        },
-        serverInfo: {
-          name: 'oura-mcp-server',
-          version: '1.0.0'
-        }
-      }
-    };
-    res.write(JSON.stringify(initMessage) + '\n');
-    console.log('Sent MCP init message:', initMessage);
-    
+
     console.log('Waiting for MCP client request...');
 
     // Handle MCP messages
@@ -379,6 +360,97 @@ export class RemoteMCPServer {
           };
           res.write(JSON.stringify(initResponse) + '\n');
           console.log('Sent MCP initialize response:', initResponse);
+          return;
+        }
+
+        // Handle MCP list tools request
+        if (data.method === 'tools/list') {
+          console.log('Handling MCP list tools request');
+          const toolsResponse = {
+            jsonrpc: '2.0',
+            id: data.id,
+            result: {
+              tools: [
+                {
+                  name: 'get_sleep_data',
+                  description: 'Get sleep data for a specific date range',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      start_date: {
+                        type: 'string',
+                        description: 'Start date in ISO format (YYYY-MM-DD)',
+                      },
+                      end_date: {
+                        type: 'string',
+                        description: 'End date in ISO format (YYYY-MM-DD)',
+                      },
+                    },
+                  },
+                },
+                {
+                  name: 'get_readiness_data',
+                  description: 'Get readiness data for a specific date range',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      start_date: {
+                        type: 'string',
+                        description: 'Start date in ISO format (YYYY-MM-DD)',
+                      },
+                      end_date: {
+                        type: 'string',
+                        description: 'End date in ISO format (YYYY-MM-DD)',
+                      },
+                    },
+                  },
+                },
+                {
+                  name: 'get_resilience_data',
+                  description: 'Get resilience data for a specific date range',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {
+                      start_date: {
+                        type: 'string',
+                        description: 'Start date in ISO format (YYYY-MM-DD)',
+                      },
+                      end_date: {
+                        type: 'string',
+                        description: 'End date in ISO format (YYYY-MM-DD)',
+                      },
+                    },
+                  },
+                },
+                {
+                  name: 'get_today_sleep_data',
+                  description: 'Get sleep data for today',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {},
+                  },
+                },
+                {
+                  name: 'get_today_readiness_data',
+                  description: 'Get readiness data for today',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {},
+                  },
+                },
+                {
+                  name: 'get_today_resilience_data',
+                  description: 'Get resilience data for today',
+                  inputSchema: {
+                    type: 'object',
+                    properties: {},
+                  },
+                },
+              ]
+            }
+          };
+          res.write(JSON.stringify(toolsResponse) + '\n');
+          console.log('Sent MCP list tools response:', toolsResponse);
           return;
         }
 

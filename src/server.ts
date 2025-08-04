@@ -332,130 +332,16 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-    // Send initial server info message according to MCP specification
-    const serverInfoMessage = {
-      jsonrpc: '2.0',
-      id: null,
-      result: {
-        protocolVersion: '2024-11-05',
-        capabilities: {
-          tools: {
-            listChanged: true
-          },
-          resources: {}
-        },
-        serverInfo: {
-          name: 'oura-mcp-server',
-          version: '1.0.0'
-        }
-      }
-    };
-    res.write(JSON.stringify(serverInfoMessage) + '\n');
-    console.log('Sent initial server info:', serverInfoMessage);
-
-    // Send tools list notification according to MCP specification
-    const toolsListNotification = {
-      jsonrpc: '2.0',
-      method: 'tools/listChanged',
-      params: {
-        tools: [
-          {
-            name: 'get_sleep_data',
-            description: 'Get sleep data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-              required: ['start_date', 'end_date']
-            },
-          },
-          {
-            name: 'get_readiness_data',
-            description: 'Get readiness data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-              required: ['start_date', 'end_date']
-            },
-          },
-          {
-            name: 'get_resilience_data',
-            description: 'Get resilience data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-              required: ['start_date', 'end_date']
-            },
-          },
-          {
-            name: 'get_today_sleep_data',
-            description: 'Get sleep data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-          {
-            name: 'get_today_readiness_data',
-            description: 'Get readiness data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-          {
-            name: 'get_today_resilience_data',
-            description: 'Get resilience data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-        ]
-      }
-    };
-    res.write(JSON.stringify(toolsListNotification) + '\n');
-    console.log('Sent tools list notification:', toolsListNotification);
-
     console.log('Connection established, waiting for Letta to send MCP requests...');
 
     // Send a simple heartbeat to keep connection alive
     const heartbeatInterval = setInterval(() => {
       const heartbeatMessage = {
-        jsonrpc: '2.0',
-        method: 'ping',
-        params: {
-          timestamp: new Date().toISOString()
-        }
+        type: 'heartbeat',
+        timestamp: new Date().toISOString()
       };
       res.write(JSON.stringify(heartbeatMessage) + '\n');
-      console.log('Sent ping heartbeat');
+      console.log('Sent heartbeat');
     }, 30000);
 
     console.log('Waiting for MCP client request...');
@@ -595,13 +481,13 @@ export class RemoteMCPServer {
           return;
         }
 
-                // Handle MCP tool call request
+        // Handle MCP tool call request
         if (data.method === 'tools/call') {
           console.log('Handling MCP tool call request:', data.params);
           try {
             const server = this.mcpServer.getServer();
             const response = await server.request(data, {} as any);
-            
+
             // Format response according to MCP specification
             const formattedResponse = {
               jsonrpc: '2.0',
@@ -615,7 +501,7 @@ export class RemoteMCPServer {
                 ]
               }
             };
-            
+
             res.write(JSON.stringify(formattedResponse) + '\n');
             console.log('Sent MCP tool call response:', formattedResponse);
           } catch (toolError) {
@@ -633,20 +519,7 @@ export class RemoteMCPServer {
           return;
         }
 
-        // Handle ping requests (for heartbeat)
-        if (data.method === 'ping') {
-          console.log('Handling ping request');
-          const pongResponse = {
-            jsonrpc: '2.0',
-            id: data.id,
-            result: {
-              timestamp: new Date().toISOString()
-            }
-          };
-          res.write(JSON.stringify(pongResponse) + '\n');
-          console.log('Sent pong response');
-          return;
-        }
+
 
         // Process other MCP requests
         const server = this.mcpServer.getServer();

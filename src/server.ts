@@ -327,20 +327,8 @@ export class RemoteMCPServer {
     res.write(`data: ${connectionMessage}\n\n`);
     console.log('Sent connection message:', connectionMessage);
     
-    // Send MCP server initialization message
-    const initMessage = JSON.stringify({
-      jsonrpc: '2.0',
-      id: null,
-      result: {
-        name: 'oura-mcp-server',
-        version: '1.0.0',
-        capabilities: {
-          tools: {}
-        }
-      }
-    });
-    res.write(`data: ${initMessage}\n\n`);
-    console.log('Sent MCP init message:', initMessage);
+    // Don't send MCP init message immediately - wait for client request
+    console.log('Waiting for MCP client request...');
 
     // Send heartbeat every 30 seconds to keep connection alive
     const heartbeatInterval = setInterval(() => {
@@ -355,6 +343,7 @@ export class RemoteMCPServer {
     // Handle MCP messages
     req.on('data', async (chunk) => {
       try {
+        console.log('Received MCP request:', chunk.toString());
         const data = JSON.parse(chunk.toString());
 
         // Process MCP request
@@ -362,8 +351,10 @@ export class RemoteMCPServer {
         const response = await server.request(data, {} as any);
 
         // Send response back via SSE
+        console.log('Sending MCP response:', response);
         res.write(`data: ${JSON.stringify(response)}\n\n`);
       } catch (error) {
+        console.log('MCP request error:', error);
         const errorResponse = {
           jsonrpc: '2.0',
           id: null,

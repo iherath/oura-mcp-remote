@@ -22,7 +22,12 @@ export class RemoteMCPServer {
 
   private setupMiddleware(): void {
     this.app.use(helmet());
-    this.app.use(cors());
+    this.app.use(cors({
+      origin: '*',
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
+      credentials: true
+    }));
     this.app.use(express.json());
   }
 
@@ -216,8 +221,14 @@ export class RemoteMCPServer {
 
   private async authenticateRequest(req: express.Request, res: express.Response, next: express.NextFunction): Promise<void> {
     try {
+      console.log('Authentication request received');
+      console.log('Headers:', req.headers);
+      console.log('Method:', req.method);
+      console.log('URL:', req.url);
+      
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.log('Missing or invalid Authorization header');
         res.status(401).json({ error: 'Missing or invalid Authorization header' });
         return;
       }

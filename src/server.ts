@@ -29,7 +29,13 @@ export class RemoteMCPServer {
   private setupRoutes(): void {
     // Health check
     this.app.get('/health', (req, res) => {
-      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+      console.log('Health check requested');
+      res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        pid: process.pid
+      });
     });
 
     // MCP discovery endpoint
@@ -190,9 +196,12 @@ export class RemoteMCPServer {
 
     // Root endpoint
     this.app.get('/', (req, res) => {
+      console.log('Root endpoint requested');
       res.json({
         name: 'Oura Remote MCP Server',
         version: '1.0.0',
+        status: 'running',
+        timestamp: new Date().toISOString(),
         endpoints: {
           health: '/health',
           mcp_discovery: '/.well-known/mcp',

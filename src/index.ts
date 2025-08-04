@@ -5,11 +5,16 @@ async function main() {
   const server = new RemoteMCPServer();
   
   try {
-    console.log(`🚀 Starting Oura Remote MCP Server on port ${port}...`);
+    console.log(`🚀 Starting Oura Remote MCP Server...`);
     console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔧 Process ID: ${process.pid}`);
+    console.log(`🌐 Port: ${port}`);
+    console.log(`🔗 Railway URL: ${process.env.RAILWAY_STATIC_URL || 'Not set'}`);
     
     await server.start(port);
+    
+    // Add a small delay to ensure server is fully ready
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
     console.log(`✅ Oura Remote MCP Server started successfully on port ${port}`);
     console.log(`📊 Health check: http://localhost:${port}/health`);

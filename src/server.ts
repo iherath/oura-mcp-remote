@@ -202,6 +202,14 @@ export class RemoteMCPServer {
       res.json({ status: 'ok', message: 'Test endpoint working' });
     });
 
+    // Handle OPTIONS requests for CORS
+    this.app.options('/sse', (req, res) => {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control');
+      res.status(200).end();
+    });
+
     // MCP Server-Sent Events endpoint
     this.app.get('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
 
@@ -294,17 +302,27 @@ export class RemoteMCPServer {
   private async handleSSE(req: express.Request, res: express.Response): Promise<void> {
     const userSession = (req as any).userSession as UserSession;
 
+    console.log('SSE connection established for user:', userSession.userId);
+
     // Set SSE headers
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control',
+      'Access-Control-Allow-Headers': 'Cache-Control, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'X-Accel-Buffering': 'no'
     });
 
     // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: 'connection', status: 'connected' })}\n\n`);
+    const connectionMessage = JSON.stringify({ 
+      type: 'connection', 
+      status: 'connected',
+      timestamp: new Date().toISOString()
+    });
+    res.write(`data: ${connectionMessage}\n\n`);
+    console.log('Sent connection message:', connectionMessage);
 
     // Handle MCP messages
     req.on('data', async (chunk) => {

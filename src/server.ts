@@ -50,11 +50,15 @@ export class RemoteMCPServer {
         version: '1.0.0',
         capabilities: {
           tools: {},
+          resources: {}
         },
         auth: {
           type: 'bearer',
           description: 'Use your Oura Personal Access Token as the Bearer token',
         },
+        endpoints: {
+          streamable: '/'
+        }
       });
     });
 
@@ -323,22 +327,23 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-    // Send initial connection message
-    const connectionMessage = {
-      type: 'connection',
-      status: 'connected',
-      timestamp: new Date().toISOString()
-    };
-    res.write(JSON.stringify(connectionMessage) + '\n');
-    console.log('Sent connection message:', connectionMessage);
-
+    // Don't send any initial message - wait for client to initiate
     console.log('Waiting for MCP client request...');
 
     // Handle MCP messages
     req.on('data', async (chunk) => {
       try {
-        console.log('Received MCP request:', chunk.toString());
-        const data = JSON.parse(chunk.toString());
+        const rawData = chunk.toString();
+        console.log('Received MCP request:', rawData);
+        
+        // Handle empty or malformed data
+        if (!rawData.trim()) {
+          console.log('Empty request received, ignoring');
+          return;
+        }
+        
+        const data = JSON.parse(rawData);
+        console.log('Parsed MCP request:', data);
 
         // Handle MCP initialization request
         if (data.method === 'initialize') {
@@ -451,6 +456,29 @@ export class RemoteMCPServer {
           };
           res.write(JSON.stringify(toolsResponse) + '\n');
           console.log('Sent MCP list tools response:', toolsResponse);
+          return;
+        }
+
+        // Handle MCP tool call request
+        if (data.method === 'tools/call') {
+          console.log('Handling MCP tool call request:', data.params);
+          try {
+            const server = this.mcpServer.getServer();
+            const response = await server.request(data, {} as any);
+            res.write(JSON.stringify(response) + '\n');
+            console.log('Sent MCP tool call response:', response);
+          } catch (toolError) {
+            console.log('Tool call error:', toolError);
+            const errorResponse = {
+              jsonrpc: '2.0',
+              id: data.id,
+              error: {
+                code: -32603,
+                message: (toolError as Error).message,
+              },
+            };
+            res.write(JSON.stringify(errorResponse) + '\n');
+          }
           return;
         }
 

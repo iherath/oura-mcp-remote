@@ -411,6 +411,7 @@ export class RemoteMCPServer {
                         description: 'End date in ISO format (YYYY-MM-DD)',
                       },
                     },
+                    required: ['start_date', 'end_date']
                   },
                 },
                 {
@@ -428,6 +429,7 @@ export class RemoteMCPServer {
                         description: 'End date in ISO format (YYYY-MM-DD)',
                       },
                     },
+                    required: ['start_date', 'end_date']
                   },
                 },
                 {
@@ -445,6 +447,7 @@ export class RemoteMCPServer {
                         description: 'End date in ISO format (YYYY-MM-DD)',
                       },
                     },
+                    required: ['start_date', 'end_date']
                   },
                 },
                 {
@@ -485,8 +488,23 @@ export class RemoteMCPServer {
           try {
             const server = this.mcpServer.getServer();
             const response = await server.request(data, {} as any);
-            res.write(JSON.stringify(response) + '\n');
-            console.log('Sent MCP tool call response:', response);
+
+            // Format response according to MCP specification
+            const formattedResponse = {
+              jsonrpc: '2.0',
+              id: data.id,
+              result: {
+                content: [
+                  {
+                    type: 'text',
+                    text: JSON.stringify(response.result, null, 2)
+                  }
+                ]
+              }
+            };
+
+            res.write(JSON.stringify(formattedResponse) + '\n');
+            console.log('Sent MCP tool call response:', formattedResponse);
           } catch (toolError) {
             console.log('Tool call error:', toolError);
             const errorResponse = {

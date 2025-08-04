@@ -318,7 +318,7 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-    // Send initial connection message
+        // Send initial connection message
     const connectionMessage = {
       type: 'connection',
       status: 'connected',
@@ -326,6 +326,22 @@ export class RemoteMCPServer {
     };
     res.write(JSON.stringify(connectionMessage) + '\n');
     console.log('Sent connection message:', connectionMessage);
+    
+    // Send MCP server initialization message immediately
+    const initMessage = {
+      jsonrpc: '2.0',
+      id: null,
+      result: {
+        name: 'oura-mcp-server',
+        version: '1.0.0',
+        capabilities: {
+          tools: {},
+          resources: {}
+        }
+      }
+    };
+    res.write(JSON.stringify(initMessage) + '\n');
+    console.log('Sent MCP init message:', initMessage);
     
     console.log('Waiting for MCP client request...');
 
@@ -335,7 +351,30 @@ export class RemoteMCPServer {
         console.log('Received MCP request:', chunk.toString());
         const data = JSON.parse(chunk.toString());
 
-        // Process MCP request
+        // Handle MCP initialization request
+        if (data.method === 'initialize') {
+          console.log('Handling MCP initialize request');
+          const initResponse = {
+            jsonrpc: '2.0',
+            id: data.id,
+            result: {
+              protocolVersion: '2024-11-05',
+              capabilities: {
+                tools: {},
+                resources: {}
+              },
+              serverInfo: {
+                name: 'oura-mcp-server',
+                version: '1.0.0'
+              }
+            }
+          };
+          res.write(JSON.stringify(initResponse) + '\n');
+          console.log('Sent MCP initialize response:', initResponse);
+          return;
+        }
+
+        // Process other MCP requests
         const server = this.mcpServer.getServer();
         const response = await server.request(data, {} as any);
 

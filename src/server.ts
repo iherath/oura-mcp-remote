@@ -311,11 +311,19 @@ export class RemoteMCPServer {
     // Load test users in development
     await this.userManager.loadTestUsers();
 
-    this.app.listen(port, () => {
-      console.log(`Oura Remote MCP Server running on port ${port}`);
-      console.log(`Health check: http://localhost:${port}/health`);
-      console.log(`MCP discovery: http://localhost:${port}/.well-known/mcp`);
-      console.log(`MCP endpoint: http://localhost:${port}/sse`);
+    return new Promise((resolve, reject) => {
+      const server = this.app.listen(port, '0.0.0.0', () => {
+        console.log(`✅ Oura Remote MCP Server running on port ${port}`);
+        console.log(`📊 Health check: http://localhost:${port}/health`);
+        console.log(`🔍 MCP discovery: http://localhost:${port}/.well-known/mcp`);
+        console.log(`🔗 MCP endpoint: http://localhost:${port}/sse`);
+        resolve();
+      });
+
+      server.on('error', (error) => {
+        console.error('❌ Server error:', error);
+        reject(error);
+      });
     });
   }
 

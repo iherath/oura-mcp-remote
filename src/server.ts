@@ -210,8 +210,11 @@ export class RemoteMCPServer {
       res.status(200).end();
     });
 
-    // MCP Server-Sent Events endpoint
+    // MCP Server-Sent Events endpoint (GET)
     this.app.get('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
+    
+    // MCP Server-Sent Events endpoint (POST) - for Letta compatibility
+    this.app.post('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
 
     // Root endpoint
     this.app.get('/', (req, res) => {
@@ -239,7 +242,7 @@ export class RemoteMCPServer {
       console.log('Headers:', req.headers);
       console.log('Method:', req.method);
       console.log('URL:', req.url);
-      
+
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         console.log('Missing or invalid Authorization header');
@@ -316,8 +319,8 @@ export class RemoteMCPServer {
     });
 
     // Send initial connection message
-    const connectionMessage = JSON.stringify({ 
-      type: 'connection', 
+    const connectionMessage = JSON.stringify({
+      type: 'connection',
       status: 'connected',
       timestamp: new Date().toISOString()
     });

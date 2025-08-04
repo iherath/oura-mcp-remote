@@ -196,6 +196,12 @@ export class RemoteMCPServer {
       }
     });
 
+    // Test endpoint without authentication
+    this.app.get('/test', (req, res) => {
+      console.log('Test endpoint hit');
+      res.json({ status: 'ok', message: 'Test endpoint working' });
+    });
+
     // MCP Server-Sent Events endpoint
     this.app.get('/sse', this.authenticateRequest.bind(this), this.handleSSE.bind(this));
 

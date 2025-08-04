@@ -332,111 +332,8 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-    // Send initial server info message
-    const serverInfoMessage = {
-      jsonrpc: '2.0',
-      id: null,
-      result: {
-        protocolVersion: '2024-11-05',
-        capabilities: {
-          tools: {},
-          resources: {}
-        },
-        serverInfo: {
-          name: 'oura-mcp-server',
-          version: '1.0.0'
-        }
-      }
-    };
-    res.write(JSON.stringify(serverInfoMessage) + '\n');
-    console.log('Sent initial server info:', serverInfoMessage);
-
-    // Send tools list immediately
-    const toolsListMessage = {
-      jsonrpc: '2.0',
-      id: null,
-      result: {
-        tools: [
-          {
-            name: 'get_sleep_data',
-            description: 'Get sleep data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-            },
-          },
-          {
-            name: 'get_readiness_data',
-            description: 'Get readiness data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-            },
-          },
-          {
-            name: 'get_resilience_data',
-            description: 'Get resilience data for a specific date range',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                start_date: {
-                  type: 'string',
-                  description: 'Start date in ISO format (YYYY-MM-DD)',
-                },
-                end_date: {
-                  type: 'string',
-                  description: 'End date in ISO format (YYYY-MM-DD)',
-                },
-              },
-            },
-          },
-          {
-            name: 'get_today_sleep_data',
-            description: 'Get sleep data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-          {
-            name: 'get_today_readiness_data',
-            description: 'Get readiness data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-          {
-            name: 'get_today_resilience_data',
-            description: 'Get resilience data for today',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-        ]
-      }
-    };
-    res.write(JSON.stringify(toolsListMessage) + '\n');
-    console.log('Sent tools list:', toolsListMessage);
+    // Don't send any initial messages - wait for Letta to initiate
+    console.log('Connection established, waiting for Letta to send MCP requests...');
 
     // Send a simple heartbeat to keep connection alive
     const heartbeatInterval = setInterval(() => {
@@ -454,7 +351,10 @@ export class RemoteMCPServer {
     req.on('data', async (chunk) => {
       try {
         const rawData = chunk.toString();
-        console.log('Received MCP request:', rawData);
+        console.log('=== MCP REQUEST RECEIVED ===');
+        console.log('Raw data:', rawData);
+        console.log('Data length:', rawData.length);
+        console.log('=============================');
 
         // Handle empty or malformed data
         if (!rawData.trim()) {
@@ -463,7 +363,7 @@ export class RemoteMCPServer {
         }
 
         const data = JSON.parse(rawData);
-        console.log('Parsed MCP request:', data);
+        console.log('Parsed MCP request:', JSON.stringify(data, null, 2));
 
         // Handle MCP initialization request
         if (data.method === 'initialize') {

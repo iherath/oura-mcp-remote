@@ -57,7 +57,7 @@ export class RemoteMCPServer {
           description: 'Use your Oura Personal Access Token as the Bearer token',
         },
         endpoints: {
-          streamable: '/'
+          streamable: '/mcp'
         }
       });
     });
@@ -220,7 +220,11 @@ export class RemoteMCPServer {
     // MCP Streamable HTTP endpoint (POST) - for Letta compatibility
     this.app.post('/sse', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
 
-    // Root MCP endpoint for Letta (Streamable HTTP)
+    // MCP endpoint for Letta (Streamable HTTP) - based on Letta docs
+    this.app.get('/mcp', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
+    this.app.post('/mcp', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
+
+    // Root MCP endpoint for Letta (Streamable HTTP) - fallback
     this.app.get('/', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
     this.app.post('/', this.authenticateRequest.bind(this), this.handleStreamableHTTP.bind(this));
 
@@ -239,6 +243,7 @@ export class RemoteMCPServer {
           oauth_token: '/oauth/token',
           register: 'POST /register',
           mcp: '/sse',
+          streamable_mcp: '/mcp',
           root_mcp: '/',
         },
       });
@@ -327,7 +332,16 @@ export class RemoteMCPServer {
       'X-Accel-Buffering': 'no'
     });
 
-    // Don't send any initial message - wait for client to initiate
+    // Send a simple heartbeat to keep connection alive
+    const heartbeatInterval = setInterval(() => {
+      const heartbeatMessage = {
+        type: 'heartbeat',
+        timestamp: new Date().toISOString()
+      };
+      res.write(JSON.stringify(heartbeatMessage) + '\n');
+      console.log('Sent heartbeat');
+    }, 30000);
+
     console.log('Waiting for MCP client request...');
 
     // Handle MCP messages
@@ -335,13 +349,13 @@ export class RemoteMCPServer {
       try {
         const rawData = chunk.toString();
         console.log('Received MCP request:', rawData);
-        
+
         // Handle empty or malformed data
         if (!rawData.trim()) {
           console.log('Empty request received, ignoring');
           return;
         }
-        
+
         const data = JSON.parse(rawData);
         console.log('Parsed MCP request:', data);
 
@@ -506,11 +520,13 @@ export class RemoteMCPServer {
     // Handle client disconnect
     req.on('close', () => {
       console.log('Streamable HTTP connection closed by client');
+      clearInterval(heartbeatInterval);
       res.end();
     });
 
     req.on('error', (error) => {
       console.error('Streamable HTTP connection error:', error);
+      clearInterval(heartbeatInterval);
       res.end();
     });
   }

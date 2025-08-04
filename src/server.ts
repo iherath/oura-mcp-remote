@@ -30,8 +30,8 @@ export class RemoteMCPServer {
     // Health check
     this.app.get('/health', (req, res) => {
       console.log('Health check requested');
-      res.json({ 
-        status: 'ok', 
+      res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         pid: process.pid
@@ -226,10 +226,12 @@ export class RemoteMCPServer {
 
       // Check if this is an Oura API key (direct authentication)
       if (token.length > 20 && !token.includes('.')) {
+        console.log('Attempting Oura API key validation...');
         // This looks like an Oura API key - validate it
         try {
           const ouraClient = new OuraClient(token);
           const isValid = await ouraClient.validateToken();
+          console.log('Oura API key validation result:', isValid);
 
           if (isValid) {
             // Create a user session for this Oura API key
@@ -241,12 +243,18 @@ export class RemoteMCPServer {
 
             // Store the Oura token for this session
             this.userManager.storeOuraTokenForSession(userSession.userId, token);
+            console.log('Oura API key validation successful');
 
             (req as any).userSession = userSession;
             next();
             return;
+          } else {
+            console.log('Oura API key validation failed - token invalid');
+            res.status(401).json({ error: 'Invalid Oura API key' });
+            return;
           }
         } catch (error) {
+          console.log('Oura API key validation error:', error);
           // Oura API key validation failed
           res.status(401).json({ error: 'Invalid Oura API key' });
           return;

@@ -156,33 +156,45 @@ export class OuraClient {
   // Validate token by making a test request
   async validateToken(): Promise<boolean> {
     try {
+      console.log('Validating Oura token...');
       // Try a simple API call to validate the token
       // Use a date range that's more likely to have data
       const endDate = new Date().toISOString().split('T')[0];
       const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
+      console.log('Trying sleep data for date range:', startDate, 'to', endDate);
+
       await this.getSleep({ start_date: startDate, end_date: endDate });
+      console.log('Sleep data validation successful');
       return true;
     } catch (error) {
+      console.log('Sleep data validation failed:', error);
       if (error instanceof OuraAPIError) {
+        console.log('OuraAPIError status:', error.statusCode);
         if (error.statusCode === 401) {
+          console.log('401 error - token invalid');
           return false;
         }
         // If it's a 404 or other error, the token might still be valid
         // Let's try a different endpoint
         try {
+          console.log('Trying readiness data as fallback...');
           await this.getReadiness({ start_date: new Date().toISOString().split('T')[0], end_date: new Date().toISOString().split('T')[0] });
+          console.log('Readiness data validation successful');
           return true;
         } catch (secondError) {
+          console.log('Readiness data validation failed:', secondError);
           if (secondError instanceof OuraAPIError && secondError.statusCode === 401) {
+            console.log('401 error on readiness - token invalid');
             return false;
           }
           // If we get here, the token might be valid but there's no data
           // Let's assume it's valid if we don't get a 401
+          console.log('Assuming token is valid (no 401 error)');
           return true;
         }
       }
       // For any other error, assume the token is valid
+      console.log('Non-OuraAPIError, assuming token is valid');
       return true;
     }
   }

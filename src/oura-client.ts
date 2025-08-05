@@ -7,64 +7,47 @@ export interface DateRangeParams {
 }
 
 export interface OuraSleepData {
-  sleep: Array<{
-    id: string;
-    contributors: {
-      deep_sleep: number;
-      efficiency: number;
-      latency: number;
-      rem_sleep: number;
-      restfulness: number;
-      timing: number;
-      total_sleep: number;
-    };
+  data: Array<{
+    id?: string;
     day: string;
-    score: number;
-    timestamp: string;
+    bedtime_start?: string;
+    bedtime_end?: string;
+    awake_time?: number;
+    deep_sleep_duration?: number;
+    light_sleep_duration?: number;
+    rem_sleep_duration?: number;
+    total_sleep_duration?: number;
+    time_in_bed?: number;
+    efficiency?: number;
+    latency?: number;
+    restless_periods?: number;
+    average_breath?: number;
+    average_heart_rate?: number;
+    average_hrv?: number;
+    lowest_heart_rate?: number;
+    readiness_score?: number;
+    readiness_contributors?: Record<string, number>;
   }>;
-  next_token?: string;
 }
 
 export interface OuraReadinessData {
-  readiness: Array<{
-    id: string;
-    contributors: {
-      activity_balance: number;
-      body_temperature: number;
-      hrv_balance: number;
-      previous_day_activity: number;
-      previous_night: number;
-      recovery_index: number;
-      resting_heart_rate: number;
-      sleep_balance: number;
-    };
+  data: Array<{
+    id?: string;
     day: string;
-    score: number;
-    temperature_deviation: number;
-    timestamp: string;
+    score?: number;
+    temperature_deviation?: number;
+    contributors?: Record<string, number>;
   }>;
-  next_token?: string;
 }
 
 export interface OuraResilienceData {
-  resilience: Array<{
-    id: string;
-    contributors: {
-      activity_balance: number;
-      body_temperature: number;
-      hrv_balance: number;
-      previous_day_activity: number;
-      previous_night: number;
-      recovery_index: number;
-      resting_heart_rate: number;
-      sleep_balance: number;
-    };
+  data: Array<{
+    id?: string;
     day: string;
-    score: number;
-    temperature_deviation: number;
-    timestamp: string;
+    score?: number;
+    temperature_deviation?: number;
+    contributors?: Record<string, number>;
   }>;
-  next_token?: string;
 }
 
 export class OuraAPIError extends Error {
@@ -117,7 +100,7 @@ export class OuraClient {
     if (params?.end_date) requestParams.end_date = params.end_date;
     if (params?.next_token) requestParams.next_token = params.next_token;
 
-    return this.makeRequest('/daily_sleep', requestParams);
+    return this.makeRequest('/sleep', requestParams);
   }
 
   async getReadiness(params?: DateRangeParams): Promise<OuraReadinessData> {

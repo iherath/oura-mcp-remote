@@ -341,7 +341,7 @@ export class RemoteMCPServer {
         timestamp: new Date().toISOString()
       };
       res.write(JSON.stringify(heartbeatMessage) + '\n');
-      console.log('Sent heartbeat');
+      console.log('💓 Sent heartbeat at', new Date().toISOString());
     }, 30000);
 
     console.log('Waiting for MCP client request...');
@@ -353,6 +353,7 @@ export class RemoteMCPServer {
         console.log('=== MCP REQUEST RECEIVED ===');
         console.log('Raw data:', rawData);
         console.log('Data length:', rawData.length);
+        console.log('Request timestamp:', new Date().toISOString());
         console.log('=============================');
 
         // Handle empty or malformed data
@@ -382,7 +383,10 @@ export class RemoteMCPServer {
 
         // Handle MCP initialization request
         if (data.method === 'initialize') {
-          console.log('Handling MCP initialize request');
+          console.log('🔧 Handling MCP initialize request');
+          console.log('Initialize request ID:', data.id);
+          console.log('Initialize request params:', data.params);
+
           const initResponse = {
             jsonrpc: '2.0',
             id: data.id,
@@ -401,13 +405,16 @@ export class RemoteMCPServer {
             }
           };
           res.write(JSON.stringify(initResponse) + '\n');
-          console.log('Sent MCP initialize response:', initResponse);
+          console.log('✅ Sent MCP initialize response:', JSON.stringify(initResponse, null, 2));
           return;
         }
 
         // Handle MCP list tools request
         if (data.method === 'tools/list') {
-          console.log('Handling MCP list tools request');
+          console.log('🔧 Handling MCP list tools request');
+          console.log('Tools list request ID:', data.id);
+          console.log('Tools list request params:', data.params);
+
           const toolsResponse = {
             jsonrpc: '2.0',
             id: data.id,
@@ -495,16 +502,23 @@ export class RemoteMCPServer {
             }
           };
           res.write(JSON.stringify(toolsResponse) + '\n');
-          console.log('Sent MCP list tools response:', toolsResponse);
+          console.log('✅ Sent MCP list tools response:', JSON.stringify(toolsResponse, null, 2));
           return;
         }
 
         // Handle MCP tool call request
         if (data.method === 'tools/call') {
-          console.log('Handling MCP tool call request:', data.params);
+          console.log('🔧 Handling MCP tool call request');
+          console.log('Tool call request ID:', data.id);
+          console.log('Tool call request params:', JSON.stringify(data.params, null, 2));
+          console.log('Tool name:', data.params?.name);
+          console.log('Tool arguments:', data.params?.arguments);
+
           try {
             const server = this.mcpServer.getServer();
+            console.log('🔄 Calling MCP server with request...');
             const response = await server.request(data, {} as any);
+            console.log('✅ MCP server response received:', JSON.stringify(response, null, 2));
 
             // Format response according to MCP specification
             const formattedResponse = {
@@ -521,9 +535,10 @@ export class RemoteMCPServer {
             };
 
             res.write(JSON.stringify(formattedResponse) + '\n');
-            console.log('Sent MCP tool call response:', formattedResponse);
+            console.log('✅ Sent MCP tool call response:', JSON.stringify(formattedResponse, null, 2));
           } catch (toolError) {
-            console.log('Tool call error:', toolError);
+            console.log('❌ Tool call error:', toolError);
+            console.log('Error stack:', (toolError as Error).stack);
             const errorResponse = {
               jsonrpc: '2.0',
               id: data.id,
@@ -533,6 +548,7 @@ export class RemoteMCPServer {
               },
             };
             res.write(JSON.stringify(errorResponse) + '\n');
+            console.log('❌ Sent MCP error response:', JSON.stringify(errorResponse, null, 2));
           }
           return;
         }
@@ -540,11 +556,16 @@ export class RemoteMCPServer {
 
 
         // Process other MCP requests
+        console.log('🔧 Processing other MCP request:', data.method);
+        console.log('Request details:', JSON.stringify(data, null, 2));
+
         const server = this.mcpServer.getServer();
+        console.log('🔄 Calling MCP server for method:', data.method);
         const response = await server.request(data, {} as any);
+        console.log('✅ MCP server response received:', JSON.stringify(response, null, 2));
 
         // Send response back via Streamable HTTP
-        console.log('Sending MCP response:', response);
+        console.log('✅ Sending MCP response for method', data.method, ':', JSON.stringify(response, null, 2));
         res.write(JSON.stringify(response) + '\n');
       } catch (error) {
         console.log('MCP request error:', error);
@@ -562,13 +583,13 @@ export class RemoteMCPServer {
 
     // Handle client disconnect
     req.on('close', () => {
-      console.log('Streamable HTTP connection closed by client');
+      console.log('🔌 Streamable HTTP connection closed by client at', new Date().toISOString());
       clearInterval(heartbeatInterval);
       res.end();
     });
 
     req.on('error', (error) => {
-      console.error('Streamable HTTP connection error:', error);
+      console.error('❌ Streamable HTTP connection error at', new Date().toISOString(), ':', error);
       clearInterval(heartbeatInterval);
       res.end();
     });

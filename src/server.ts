@@ -361,7 +361,23 @@ export class RemoteMCPServer {
           return;
         }
 
-        const data = JSON.parse(rawData);
+        // Handle malformed JSON
+        let data;
+        try {
+          data = JSON.parse(rawData);
+        } catch (parseError) {
+          console.log('Malformed JSON received:', rawData);
+          const errorResponse = {
+            jsonrpc: '2.0',
+            id: null,
+            error: {
+              code: -32700,
+              message: 'Parse error',
+            },
+          };
+          res.write(JSON.stringify(errorResponse) + '\n');
+          return;
+        }
         console.log('Parsed MCP request:', JSON.stringify(data, null, 2));
 
         // Handle MCP initialization request
@@ -371,9 +387,11 @@ export class RemoteMCPServer {
             jsonrpc: '2.0',
             id: data.id,
             result: {
-              protocolVersion: '2024-11-05',
+              protocolVersion: '2025-06-18',
               capabilities: {
-                tools: {},
+                tools: {
+                  listChanged: true
+                },
                 resources: {}
               },
               serverInfo: {

@@ -58,7 +58,7 @@ export class OuraAPIError extends Error {
 }
 
 export class OuraClient {
-  private baseUrl = 'https://api.oura.com/v2/usercollection';
+  private baseUrl = 'https://api.ouraring.com/v2/usercollection';
   private token: string;
 
   constructor(token: string) {
